@@ -904,11 +904,7 @@
 
     const commentArea = byId('commentArea');
     commentArea.innerHTML = '';
-    if (result.violatedPairs.length === 0){
-      const ok = document.createElement('div'); ok.className = 'ok-box';
-      ok.textContent = '✅ 기피 조합·최용성 3주 룰·부상자 분산 조건이 모두 충족됐어요.';
-      commentArea.appendChild(ok);
-    } else {
+    if (result.violatedPairs.length > 0){
       const box = document.createElement('div'); box.className = 'comment-box';
       const head = document.createElement('div'); head.className = 'c-head';
       head.textContent = '⚠️ 부득이하게 조건을 충족하지 못한 항목 (' + result.violatedPairs.length + '건)';
