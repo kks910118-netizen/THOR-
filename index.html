@@ -357,7 +357,7 @@
   <div class="tab-panel" data-panel="admin">
     <div class="panel">
       <div class="panel-head"><h2>관리자 모드</h2></div>
-      <p class="panel-desc">암호를 입력하면 '기피 조합'과 '최용성 3주 룰' 탭이 열려요. 팀 편성 결과를 구글시트에 저장하는 것도 관리자만 가능해요.</p>
+      <p class="panel-desc">암호를 입력하면 '기피 조합'과 '최용성 3주 룰' 탭이 열리고, 참가자 점수도 볼 수 있어요. 팀 편성 결과 저장은 관리자가 아니어도 누구나 할 수 있어요.</p>
       <div class="admin-wrap">
         <div class="admin-form" id="adminForm"></div>
         <div class="admin-photo">
@@ -376,7 +376,7 @@
   "use strict";
 
   // ====== 배포 전 설정값 ======
-  const GOOGLE_SHEET_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbwFtxepXG0nPODQ_QExKhOjUeHzIAaIWzy00y5iXlLNCNhDHTfxVFuI8EIuQqWFqYLshQ/exec";
+  const GOOGLE_SHEET_WEBAPP_URL = "PASTE_YOUR_APPS_SCRIPT_WEBAPP_URL_HERE";
   const ADMIN_PASSCODE = "xhfm1020!";
   // ============================
 
@@ -931,10 +931,6 @@
   function renderSaveRow(){
     const row = byId('saveRow');
     row.innerHTML = '';
-    if (!adminUnlocked){
-      row.innerHTML = '<span class="save-msg">기록 저장은 관리자만 할 수 있어요 (관리자 모드 탭에서 잠금 해제).</span>';
-      return;
-    }
     const btn = document.createElement('button');
     btn.className = 'primary-btn'; btn.textContent = '💾 이 날짜로 기록 저장';
     btn.onclick = saveHistory;
