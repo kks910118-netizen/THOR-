@@ -271,11 +271,6 @@
       <div class="roster-grid" id="roster"></div>
       <div class="add-row">
         <input type="text" id="newName" placeholder="긴급 선수 이름 추가">
-        <select id="newTier">
-          <option value="39">상</option>
-          <option value="33" selected>중</option>
-          <option value="27">하</option>
-        </select>
         <button class="primary-btn" id="btnAddPlayer">+ 추가</button>
       </div>
     </div>
@@ -285,7 +280,7 @@
   <div class="tab-panel" data-panel="avoid">
     <div class="panel">
       <div class="panel-head"><h2>기피 조합</h2><span class="admin-status-ok" style="margin:0;padding:4px 10px;">🔓 관리자 전용</span></div>
-      <p class="panel-desc">안 맞는 두 사람을 골라 등록하면, 팀 편성 시 항상 다른 팀으로 분리돼요.</p>
+      <p class="panel-desc">안 맞는 두 사람을 골라 등록하면, 팀 편성 시 항상 다른 팀으로 분리돼요. 등록 내용은 구글시트에 자동 저장되어 다음에 열어도 그대로 유지돼요.</p>
       <div class="avoid-picker">
         <select id="avoidA"></select>
         <span class="x">↔</span>
@@ -301,7 +296,7 @@
   <div class="tab-panel" data-panel="injury">
     <div class="panel">
       <div class="panel-head"><h2>부상자 관리</h2></div>
-      <p class="panel-desc">부상자로 표시된 인원은 서로 최대한 다른 팀으로 나뉘도록 자동 분산돼요. 김기수·오원근·이용우는 엑셀 특이사항을 반영해 기본으로 켜져 있어요.</p>
+      <p class="panel-desc">부상자로 표시된 인원은 서로 최대한 다른 팀으로 나뉘도록 자동 분산돼요. 김기수·오원근·이용우는 엑셀 특이사항을 반영해 기본으로 켜져 있어요. 변경 내용은 구글시트에 자동 저장되어 다음에 열어도 그대로 유지돼요.</p>
       <div class="injury-list" id="injuryList"></div>
     </div>
   </div>
@@ -562,12 +557,13 @@
     });
   }
 
+  const DEFAULT_NEW_PLAYER_SCORE = Math.round(EXCEL_PLAYERS.reduce((s,p)=>s+p.score,0) / EXCEL_PLAYERS.length);
+
   byId('btnAddPlayer').onclick = () => {
     const nameInput = byId('newName');
     const name = nameInput.value.trim();
     if (!name) return;
-    const score = parseInt(byId('newTier').value, 10);
-    players.push({ id: 'p'+Date.now(), name, score, injured:false, note:'', attend: true });
+    players.push({ id: 'p'+Date.now(), name, score: DEFAULT_NEW_PLAYER_SCORE, injured:false, note:'', attend: true });
     nameInput.value = '';
     renderAll();
   };
@@ -604,7 +600,7 @@
       chip.appendChild(label);
       if (pair.reason){ const r=document.createElement('span'); r.className='reason'; r.textContent='· '+pair.reason; chip.appendChild(r); }
       const rm = document.createElement('div'); rm.className='rm'; rm.textContent='✕';
-      rm.onclick = () => { avoidPairs = avoidPairs.filter(x=>x.id!==pair.id); renderAvoidTab(); renderStats(); };
+      rm.onclick = () => { avoidPairs = avoidPairs.filter(x=>x.id!==pair.id); renderAvoidTab(); renderStats(); saveConfigToSheet(); };
       chip.appendChild(rm);
       wrap.appendChild(chip);
     });
@@ -616,7 +612,7 @@
     const exists = avoidPairs.some(x => (x.aId===a&&x.bId===b)||(x.aId===b&&x.bId===a));
     if (!exists) avoidPairs.push({ id:'av'+(avoidSeq++), aId:a, bId:b, reason });
     byId('avoidReason').value = '';
-    renderAvoidTab(); renderStats();
+    renderAvoidTab(); renderStats(); saveConfigToSheet();
   };
 
   // ================= INJURY (Tab 3) =================
@@ -630,12 +626,12 @@
       const nm = document.createElement('div'); nm.className='nm'; nm.textContent = p.name;
       const sw = document.createElement('div'); sw.className = 'switch' + (p.injured?' on':'');
       const dot = document.createElement('div'); dot.className='dot'; sw.appendChild(dot);
-      sw.onclick = () => { p.injured = !p.injured; renderInjuryList(); renderRoster(); renderStats(); };
+      sw.onclick = () => { p.injured = !p.injured; renderInjuryList(); renderRoster(); renderStats(); saveConfigToSheet(); };
       const noteInput = document.createElement('input');
       noteInput.type='text'; noteInput.placeholder='메모 (예: 무릎 부상, 전력질주 자제)';
       noteInput.value = p.note || ''; noteInput.disabled = !p.injured;
       noteInput.oninput = () => { p.note = noteInput.value; };
-      noteInput.onblur = () => { renderRoster(); };
+      noteInput.onblur = () => { renderRoster(); saveConfigToSheet(); };
       row.appendChild(nm); row.appendChild(sw); row.appendChild(noteInput);
       wrap.appendChild(row);
     });
@@ -977,6 +973,47 @@
       if (manual) alert('구글시트에서 기록을 불러오지 못했어요: ' + err.message);
     }
   }
+
+  // 기피 조합 / 부상자 목록: 마지막으로 저장된 상태를 불러와서 다음 수정 전까지 유지
+  async function loadConfigAndApply(){
+    if (!isSheetConfigured()) return;
+    try{
+      const cfg = await fetchJson_(GOOGLE_SHEET_WEBAPP_URL + '?action=config');
+      (cfg.avoidPairs || []).forEach(item => {
+        const a = players.find(pl => pl.name === item.aName);
+        const b = players.find(pl => pl.name === item.bName);
+        if (a && b){
+          const exists = avoidPairs.some(x => (x.aId===a.id&&x.bId===b.id)||(x.aId===b.id&&x.bId===a.id));
+          if (!exists) avoidPairs.push({ id:'av'+(avoidSeq++), aId:a.id, bId:b.id, reason:item.reason||'' });
+        }
+      });
+      (cfg.injured || []).forEach(item => {
+        const p = players.find(pl => pl.name === item.name);
+        if (p){ p.injured = true; if (item.note) p.note = item.note; }
+      });
+      renderAll();
+    }catch(err){ /* 조용히 무시: 저장된 설정이 없거나 연결 실패해도 앱은 정상 동작 */ }
+  }
+
+  async function saveConfigToSheet(){
+    if (!isSheetConfigured()) return;
+    const payload = {
+      kind: 'config',
+      avoidPairs: avoidPairs.map(pr => {
+        const a = findPlayer(pr.aId), b = findPlayer(pr.bId);
+        return { aName: a ? a.name : '', bName: b ? b.name : '', reason: pr.reason || '' };
+      }).filter(x => x.aName && x.bName),
+      injured: players.filter(p => p.injured).map(p => ({ name: p.name, note: p.note || '' }))
+    };
+    try{
+      await fetch(GOOGLE_SHEET_WEBAPP_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify(payload)
+      });
+    }catch(err){ /* 조용히 무시: 다음 수정 때 다시 시도됨 */ }
+  }
+
   async function saveHistory(){
     const msg = byId('saveMsg');
     if (!lastGenerated) return;
@@ -1021,6 +1058,7 @@
   renderAll();
   hideResults();
   loadHistoryAndApply(false);
+  loadConfigAndApply();
 })();
 </script>
 </body>
