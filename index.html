@@ -267,7 +267,7 @@
           <button class="ghost-btn" id="btnNone">전체 해제</button>
         </div>
       </div>
-      <p class="panel-desc">점수는 배분_7_28 엑셀의 '배분용 총점'을 기본값으로 불러왔어요. 체크 = 오늘 참석, 상/중/하 버튼 또는 +/− 로 그날 컨디션에 맞게 점수를 수정하세요.</p>
+      <p class="panel-desc">점수는 배분_7_28 엑셀의 '배분용 총점'을 그대로 사용해요 (컨디션별 임의 조정은 없앴어요). 체크 = 오늘 참석 여부만 정하시면 됩니다.</p>
       <div class="roster-grid" id="roster"></div>
       <div class="add-row">
         <input type="text" id="newName" placeholder="긴급 선수 이름 추가">
@@ -543,24 +543,10 @@
       if (p.note){ const b=document.createElement('span'); b.className='badge badge-note'; b.textContent=p.note; nameRow.appendChild(b); }
       info.appendChild(nameRow);
 
-      const tierRow = document.createElement('div'); tierRow.className = 'tier-row';
-      [['상',39],['중',33],['하',27]].forEach(([label,val]) => {
-        const b = document.createElement('button');
-        b.className = 'tier-btn' + (p.score === val ? ' active' : '');
-        b.textContent = label;
-        b.onclick = () => { p.score = val; renderRoster(); renderStats(); };
-        tierRow.appendChild(b);
-      });
-      info.appendChild(tierRow);
-
       const scoreBox = document.createElement('div'); scoreBox.className = 'score-box';
       if (adminUnlocked){
-        const minus = document.createElement('button'); minus.className = 'step-btn'; minus.textContent = '−';
-        minus.onclick = () => { p.score = Math.max(1, p.score - 1); renderRoster(); renderStats(); };
         const val = document.createElement('div'); val.className = 'score-val num'; val.textContent = p.score;
-        const plus = document.createElement('button'); plus.className = 'step-btn'; plus.textContent = '+';
-        plus.onclick = () => { p.score = Math.min(60, p.score + 1); renderRoster(); renderStats(); };
-        scoreBox.appendChild(minus); scoreBox.appendChild(val); scoreBox.appendChild(plus);
+        scoreBox.appendChild(val);
       }
 
       const del = document.createElement('div'); del.className = 'del'; del.textContent = '✕'; del.title = '명단에서 삭제';
