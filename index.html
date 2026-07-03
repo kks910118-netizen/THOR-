@@ -98,7 +98,7 @@
   /* ---------- Admin tab ---------- */
   .admin-wrap{ display:flex; gap:24px; align-items:flex-start; flex-wrap:wrap; }
   .admin-form{ flex:1; min-width:240px; }
-  .admin-form input[type=password]{ width:100%; background:var(--bg-2); border:1px solid var(--line-strong); color:var(--text); padding:11px 14px; border-radius:9px; font-size:14px; margin-bottom:10px; }
+  .admin-form input[type=text]{ width:100%; background:var(--bg-2); border:1px solid var(--line-strong); color:var(--text); padding:11px 14px; border-radius:9px; font-size:14px; margin-bottom:10px; }
   .admin-status-ok{ background:rgba(46,154,99,0.1); border:1px solid rgba(46,154,99,0.35); color:#1E7A4C; border-radius:10px; padding:12px 14px; font-size:13px; font-weight:700; margin-bottom:14px; }
   .admin-photo{ flex:0 0 auto; text-align:center; }
   .admin-photo img{ width:220px; max-width:60vw; border-radius:16px; box-shadow: 0 10px 30px rgba(15,37,48,0.18); border:4px solid #fff; transform:rotate(-2deg); }
@@ -432,6 +432,7 @@
   let avoidSeq = 1;
   let adminUnlocked = false;
   let lastGenerated = null;
+  let lastResultFull = null; // { result, dateStr } for re-rendering when admin state toggles
   let sheetConfigured = false;
   let sheetOnline = false;
 
@@ -496,7 +497,17 @@
       wrap.appendChild(btn);
     } else {
       const input = document.createElement('input');
-      input.type = 'password'; input.placeholder = '관리자 암호 입력';
+      input.type = 'text';
+      input.style.webkitTextSecurity = 'disc';
+      input.style.textSecurity = 'disc';
+      input.placeholder = '관리자 암호 입력';
+      input.setAttribute('autocomplete', 'off');
+      input.setAttribute('autocorrect', 'off');
+      input.setAttribute('autocapitalize', 'off');
+      input.setAttribute('spellcheck', 'false');
+      input.setAttribute('name', 'admin_pw_' + Math.random().toString(36).slice(2));
+      input.setAttribute('readonly', 'readonly');
+      input.addEventListener('focus', () => input.removeAttribute('readonly'));
       const btn = document.createElement('button'); btn.className = 'primary-btn'; btn.textContent = '입력';
       const tryLogin = () => {
         if (input.value === ADMIN_PASSCODE){ adminUnlocked = true; renderAll(); }
@@ -543,12 +554,14 @@
       info.appendChild(tierRow);
 
       const scoreBox = document.createElement('div'); scoreBox.className = 'score-box';
-      const minus = document.createElement('button'); minus.className = 'step-btn'; minus.textContent = '−';
-      minus.onclick = () => { p.score = Math.max(1, p.score - 1); renderRoster(); renderStats(); };
-      const val = document.createElement('div'); val.className = 'score-val num'; val.textContent = p.score;
-      const plus = document.createElement('button'); plus.className = 'step-btn'; plus.textContent = '+';
-      plus.onclick = () => { p.score = Math.min(60, p.score + 1); renderRoster(); renderStats(); };
-      scoreBox.appendChild(minus); scoreBox.appendChild(val); scoreBox.appendChild(plus);
+      if (adminUnlocked){
+        const minus = document.createElement('button'); minus.className = 'step-btn'; minus.textContent = '−';
+        minus.onclick = () => { p.score = Math.max(1, p.score - 1); renderRoster(); renderStats(); };
+        const val = document.createElement('div'); val.className = 'score-val num'; val.textContent = p.score;
+        const plus = document.createElement('button'); plus.className = 'step-btn'; plus.textContent = '+';
+        plus.onclick = () => { p.score = Math.min(60, p.score + 1); renderRoster(); renderStats(); };
+        scoreBox.appendChild(minus); scoreBox.appendChild(val); scoreBox.appendChild(plus);
+      }
 
       const del = document.createElement('div'); del.className = 'del'; del.textContent = '✕'; del.title = '명단에서 삭제';
       del.onclick = () => {
@@ -558,7 +571,7 @@
         renderAll();
       };
 
-      card.appendChild(chk); card.appendChild(info); card.appendChild(scoreBox); card.appendChild(del);
+      card.appendChild(chk); card.appendChild(info); if (adminUnlocked) card.appendChild(scoreBox); card.appendChild(del);
       wrap.appendChild(card);
     });
   }
@@ -577,7 +590,7 @@
   byId('btnNone').onclick = () => { players.forEach(p => p.attend = false); renderAll(); };
   byId('btnReset').onclick = () => {
     if (!confirm('참석/점수/기피조합/부상자/최용성룰/결과를 모두 초기화할까요?')) return;
-    players = freshPlayers(); avoidPairs = []; yongRecentIds = []; teamCount = 3; lastGenerated = null;
+    players = freshPlayers(); avoidPairs = []; yongRecentIds = []; teamCount = 3; lastGenerated = null; lastResultFull = null;
     renderAll(); hideResults();
   };
 
@@ -719,7 +732,7 @@
     const att = attendingPlayers();
     byId('statAttend').textContent = att.length;
     const avg = att.length ? (att.reduce((s,p)=>s+p.score,0)/att.length) : 0;
-    byId('statAvg').textContent = avg.toFixed(1);
+    byId('statAvg').textContent = adminUnlocked ? avg.toFixed(1) : '🔒';
     byId('statInjury').textContent = att.filter(p=>p.injured).length;
     byId('statAvoid').textContent = avoidPairs.length;
     updateGenerateButton();
@@ -855,7 +868,7 @@
     byId('resultDow').textContent = f.dow;
 
     byId('balancePct').textContent = result.balancePct;
-    byId('balanceDiff').textContent = result.maxDiff;
+    byId('balanceDiff').textContent = adminUnlocked ? result.maxDiff : '🔒';
     byId('balanceFill').style.width = result.balancePct + '%';
 
     const grid = byId('teamGrid');
@@ -867,17 +880,22 @@
       card.appendChild(bar);
       const head = document.createElement('div'); head.className = 't-head';
       const avg = team.members.length ? (team.total/team.members.length) : 0;
+      const avgTxt = adminUnlocked ? avg.toFixed(1) : '🔒';
       head.innerHTML = `<div class="t-name"><span class="dot" style="background:${color}"></span>${idx+1}팀 <span style="color:var(--text-faint);font-weight:400;">· ${team.members.length}명</span></div>
-        <div class="t-avg">평균 <b class="num">${avg.toFixed(1)}</b></div>`;
+        <div class="t-avg">평균 <b class="num">${avgTxt}</b></div>`;
       card.appendChild(head);
       const ul = document.createElement('ul'); ul.className = 'team-list';
-      team.members.slice().sort((a,b)=>b.score-a.score).forEach(m => {
+      const ordered = team.members.slice().sort(adminUnlocked ? (a,b)=>b.score-a.score : (a,b)=>a.name.localeCompare(b.name,'ko'));
+      ordered.forEach(m => {
         const li = document.createElement('li');
         const nmWrap = document.createElement('span'); nmWrap.className='nm';
         if (m.injured){ const d=document.createElement('span'); d.className='dot-inj'; nmWrap.appendChild(d); }
         const nmText = document.createElement('span'); nmText.textContent = m.name; nmWrap.appendChild(nmText);
-        const sc = document.createElement('span'); sc.className = 'sc num'; sc.textContent = m.score;
-        li.appendChild(nmWrap); li.appendChild(sc);
+        li.appendChild(nmWrap);
+        if (adminUnlocked){
+          const sc = document.createElement('span'); sc.className = 'sc num'; sc.textContent = m.score;
+          li.appendChild(sc);
+        }
         ul.appendChild(li);
       });
       card.appendChild(ul);
@@ -906,6 +924,7 @@
     }
 
     lastGenerated = { date: dateStr, teams: result.teams };
+    lastResultFull = { result, dateStr };
     renderSaveRow();
   }
 
@@ -1017,7 +1036,8 @@
     renderTeamCountRow();
     renderDatePicker();
     renderStats();
-    if (lastGenerated) renderSaveRow();
+    if (lastResultFull) renderResults(lastResultFull.result, lastResultFull.dateStr);
+    else if (lastGenerated) renderSaveRow();
   }
 
   renderAll();
