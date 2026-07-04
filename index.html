@@ -243,16 +243,16 @@
     <div class="stat"><div class="v num" id="statAttend">0</div><div class="l">참석</div></div>
     <div class="stat"><div class="v num" id="statAvg">0.0</div><div class="l">평균 점수</div></div>
     <div class="stat"><div class="v num warn" id="statInjury">0</div><div class="l">부상자</div></div>
-    <div class="stat"><div class="v num" id="statAvoid">0</div><div class="l">기피 조합</div></div>
+    <div class="stat"><div class="v num" id="statAvoid">0</div><div class="l">특수 조건</div></div>
   </div>
 </div>
 
 <div class="wrap">
   <div class="tabbar" id="tabbar">
     <button class="tab-btn active" data-tab="roster">👥 참가자 &amp; 점수</button>
-    <button class="tab-btn" data-tab="avoid" style="display:none;">🚫 기피 조합</button>
+    <button class="tab-btn" data-tab="avoid" style="display:none;">🚫 조건 A</button>
     <button class="tab-btn" data-tab="injury">🩹 부상자 관리</button>
-    <button class="tab-btn" data-tab="yong" style="display:none;">🔁 최용성 3주 룰</button>
+    <button class="tab-btn" data-tab="yong" style="display:none;">🔁 조건 B</button>
     <button class="tab-btn" data-tab="team">⚽ 팀 편성 &amp; 결과</button>
     <button class="tab-btn admin-tab" data-tab="admin">🔑 관리자 모드</button>
   </div>
@@ -279,7 +279,7 @@
   <!-- TAB 2: avoid pairs (admin-only, tab hidden unless unlocked) -->
   <div class="tab-panel" data-panel="avoid">
     <div class="panel">
-      <div class="panel-head"><h2>기피 조합</h2><span class="admin-status-ok" style="margin:0;padding:4px 10px;">🔓 관리자 전용</span></div>
+      <div class="panel-head"><h2>조건 A</h2><span class="admin-status-ok" style="margin:0;padding:4px 10px;">🔓 관리자 전용</span></div>
       <p class="panel-desc">안 맞는 두 사람을 골라 등록하면, 팀 편성 시 항상 다른 팀으로 분리돼요. 등록 내용은 구글시트에 자동 저장되어 다음에 열어도 그대로 유지돼요.</p>
       <div class="avoid-picker">
         <select id="avoidA"></select>
@@ -304,8 +304,8 @@
   <!-- TAB 4: yongseong rule (admin-only, tab hidden unless unlocked) -->
   <div class="tab-panel" data-panel="yong">
     <div class="panel">
-      <div class="panel-head"><h2>최용성 3주 룰</h2><span class="admin-status-ok" style="margin:0;padding:4px 10px;">🔓 관리자 전용</span></div>
-      <div class="rule-callout">최용성과 <b>절대 3주 연속</b> 같은 팀이 되지 않도록 설정합니다. 구글시트에 저장된 지난 기록이 있으면 "이미 2주 연속 같은 팀"인 사람을 자동으로 찾아 체크해줘요.</div>
+      <div class="panel-head"><h2>조건 B</h2><span class="admin-status-ok" style="margin:0;padding:4px 10px;">🔓 관리자 전용</span></div>
+      <div class="rule-callout">특정 인원과 <b>절대 3주 연속</b> 같은 팀이 되지 않도록 설정합니다. 구글시트에 저장된 지난 기록이 있으면 대상자를 자동으로 찾아 체크해줘요.</div>
       <div class="sheet-status" id="sheetStatus"></div>
       <div class="yong-list" id="yongList"></div>
     </div>
@@ -352,7 +352,7 @@
   <div class="tab-panel" data-panel="admin">
     <div class="panel">
       <div class="panel-head"><h2>관리자 모드</h2></div>
-      <p class="panel-desc">암호를 입력하면 '기피 조합'과 '최용성 3주 룰' 탭이 열리고, 참가자 점수도 볼 수 있어요. 팀 편성 결과 저장은 관리자가 아니어도 누구나 할 수 있어요.</p>
+      <p class="panel-desc">암호를 입력하면 '조건 A'와 '조건 B' 탭이 열리고, 참가자 점수도 볼 수 있어요. 팀 편성 결과 저장은 관리자가 아니어도 누구나 할 수 있어요.</p>
       <div class="admin-wrap">
         <div class="admin-form" id="adminForm"></div>
         <div class="admin-photo">
@@ -364,7 +364,7 @@
   </div>
 </div>
 
-<footer class="note">점수·특이사항은 배분_7_28.xlsx에서 불러온 값이며, 기피 조합/최용성 3주 룰 기록은 연결된 구글시트에 저장돼요.<br>이 파일을 그대로 열었다면 구글시트 연동은 아직 비활성 상태예요 — 안내된 Apps Script 설정 후 URL을 코드에 넣어야 동작합니다.</footer>
+<footer class="note">점수·특이사항은 배분_7_28.xlsx에서 불러온 값이며, 특수 조건 관련 기록은 연결된 구글시트에 저장돼요.<br>이 파일을 그대로 열었다면 구글시트 연동은 아직 비활성 상태예요 — 안내된 Apps Script 설정 후 URL을 코드에 넣어야 동작합니다.</footer>
 
 <script>
 (function(){
@@ -485,7 +485,7 @@
     wrap.innerHTML = '';
     if (adminUnlocked){
       const ok = document.createElement('div'); ok.className = 'admin-status-ok';
-      ok.textContent = '🔓 관리자 모드가 활성화되어 있어요. 기피 조합 / 최용성 3주 룰 탭이 열렸습니다.';
+      ok.textContent = '🔓 관리자 모드가 활성화되어 있어요. 조건 A / 조건 B 탭이 열렸습니다.';
       wrap.appendChild(ok);
       const btn = document.createElement('button'); btn.className = 'ghost-btn'; btn.textContent = '관리자 모드 잠그기';
       btn.onclick = () => { adminUnlocked = false; renderAll(); };
@@ -571,7 +571,7 @@
   byId('btnAll').onclick = () => { players.forEach(p => p.attend = true); renderAll(); };
   byId('btnNone').onclick = () => { players.forEach(p => p.attend = false); renderAll(); };
   byId('btnReset').onclick = () => {
-    if (!confirm('참석/점수/기피조합/부상자/최용성룰/결과를 모두 초기화할까요?')) return;
+    if (!confirm('참석/점수/조건A/부상자/조건B/결과를 모두 초기화할까요?')) return;
     players = freshPlayers(); avoidPairs = []; yongRecentIds = []; teamCount = 3; lastGenerated = null; lastResultFull = null;
     renderAll(); hideResults();
   };
@@ -589,7 +589,7 @@
     const wrap = byId('avoidList');
     wrap.innerHTML = '';
     if (avoidPairs.length === 0){
-      const e = document.createElement('div'); e.className='empty-note'; e.textContent='등록된 기피 조합이 없어요.';
+      const e = document.createElement('div'); e.className='empty-note'; e.textContent='등록된 조건이 없어요.';
       wrap.appendChild(e); return;
     }
     avoidPairs.forEach(pair => {
@@ -658,7 +658,7 @@
     wrap.innerHTML = '';
     const yong = yongseong();
     if (!yong || !yong.attend){
-      wrap.innerHTML = '<div class="empty-note">최용성이 명단에 없거나 오늘 결석 처리되어 있어 이 규칙은 적용되지 않아요.</div>';
+      wrap.innerHTML = '<div class="empty-note">대상 인원이 명단에 없거나 오늘 결석 처리되어 있어 이 조건은 적용되지 않아요.</div>';
       return;
     }
     const others = attendingPlayers().filter(p => p.id !== yong.id);
@@ -733,10 +733,10 @@
       entry.weight += 1;
       entry.reasons.push({type:typeLabel, text:reasonText});
     }
-    avoidPairs.forEach(pr => addPair(pr.aId, pr.bId, pr.reason || '등록된 기피 조합', 'manual'));
+    avoidPairs.forEach(pr => addPair(pr.aId, pr.bId, pr.reason || '등록된 배정 조건', 'manual'));
     const yong = yongseong();
     if (yong && attIds.has(yong.id)){
-      yongRecentIds.forEach(id => addPair(yong.id, id, '최용성과 이미 2주 연속 같은 팀 → 3주 연속 방지', 'yong'));
+      yongRecentIds.forEach(id => addPair(yong.id, id, '특정 인원과 이미 2주 연속 같은 팀 → 3주 연속 방지', 'yong'));
     }
     const injured = pool.filter(p => p.injured);
     for (let i=0;i<injured.length;i++){
